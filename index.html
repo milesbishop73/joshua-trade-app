@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>J Trade</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --tg-theme-bg-color: #1a1a2e;
+      --tg-theme-text-color: #e0e0e0;
+      --tg-theme-hint-color: #8a8a9e;
+      --tg-theme-button-color: #4ea8de;
+      --tg-theme-secondary-bg-color: #16213e;
+      --josh-green: #00e676; --josh-red: #ff5252;
+      --josh-amber: #ffc107; --josh-dim: #4a4a5e;
+      --josh-panel: rgba(255,255,255,0.04);
+      --josh-border: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color);
+      min-height: 100vh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .tab-bar {
+      display: flex; position: sticky; top: 0; z-index: 100;
+      background: var(--tg-theme-secondary-bg-color);
+      border-bottom: 1px solid var(--josh-border);
+    }
+    .tab-btn {
+      flex: 1; padding: 14px 0; border: none; background: transparent;
+      color: var(--tg-theme-hint-color); font-size: 13px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
+      position: relative; font-family: inherit;
+    }
+    .tab-btn.active { color: var(--tg-theme-button-color); }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 20%; right: 20%;
+      height: 2px; background: var(--tg-theme-button-color); border-radius: 1px;
+    }
+    .badge {
+      display: inline-block; background: var(--josh-red); color: #fff;
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+      margin-left: 4px; vertical-align: middle;
+    }
+    .tab-content { display: none; padding: 14px; }
+    .tab-content.active { display: block; }
+
+    .trade-card {
+      background: var(--josh-panel); border: 1px solid var(--josh-border);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .instrument { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .silo-tag {
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .silo-crypto { background: rgba(0,230,118,0.15); color: var(--josh-green); }
+    .silo-ipo_shorts { background: rgba(255,193,7,0.15); color: var(--josh-amber); }
+    .silo-junior_mining { background: rgba(78,168,222,0.15); color: var(--tg-theme-button-color); }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .detail-label { font-size: 11px; color: var(--tg-theme-hint-color); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .detail-value { font-size: 15px; font-weight: 600; }
+    .dir-buy { color: var(--josh-green); }
+    .dir-sell { color: var(--josh-red); }
+
+    .modify-context {
+      background: rgba(78,168,222,0.08); border: 1px solid rgba(78,168,222,0.2);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+      font-size: 13px; color: var(--tg-theme-button-color);
+    }
+    .accounts-banner {
+      font-size: 12px; color: var(--tg-theme-hint-color); padding: 8px 12px;
+      background: rgba(78,168,222,0.06); border-radius: 8px; text-align: center;
+      margin-bottom: 12px;
+    }
+    .confirm-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+      font-family: inherit;
+    }
+    .confirm-btn.entry { background: var(--josh-green); color: #000; }
+    .confirm-btn.modify { background: var(--tg-theme-button-color); color: #fff; }
+    .confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .notes { margin-top: 8px; font-size: 11px; color: var(--josh-dim); line-height: 1.4; }
+
+    .ks-card {
+      background: var(--josh-panel); border: 1px solid var(--josh-border);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .ks-light { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .ks-light.GREEN { background: var(--josh-green); box-shadow: 0 0 8px var(--josh-green); }
+    .ks-light.AMBER { background: var(--josh-amber); box-shadow: 0 0 8px var(--josh-amber); }
+    .ks-light.RED { background: var(--josh-red); box-shadow: 0 0 8px var(--josh-red); animation: pulse 1.5s infinite; }
+    .ks-light.INACTIVE { background: var(--josh-dim); }
+    .ks-name { font-size: 13px; font-weight: 600; }
+    .ks-value { font-size: 12px; color: var(--tg-theme-hint-color); margin-top: 2px; }
+    .summary-box {
+      background: var(--josh-panel); border: 1px solid var(--josh-border);
+      border-radius: 12px; padding: 16px; margin-top: 16px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--tg-theme-hint-color); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state .title { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--tg-theme-text-color); }
+    .loading { text-align: center; padding: 32px; color: var(--tg-theme-hint-color); }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 2px solid var(--josh-border); border-top-color: var(--tg-theme-button-color);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    .toast {
+      position: fixed; bottom: 20px; left: 16px; right: 16px;
+      padding: 14px 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      text-align: center; z-index: 1000; transform: translateY(120%); transition: transform 0.3s;
+    }
+    .toast.visible { transform: translateY(0); }
+    .toast.success { background: var(--josh-green); color: #000; }
+    .toast.error { background: var(--josh-red); color: #fff; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="approve">
+      Approve <span class="badge" id="badge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" data-tab="status">Status</button>
+  </div>
+
+  <div class="tab-content active" id="approveTab">
+    <div id="approveLoading" class="loading"><div class="spinner"></div><p style="margin-top:8px">Loading...</p></div>
+    <div id="approveEmpty" class="empty-state" style="display:none">
+      <div class="icon">✓</div>
+      <div class="title">No pending approvals</div>
+      <div class="subtitle">Entries and hold extensions appear here when the IC proposes them. Exits execute automatically.</div>
+    </div>
+    <div id="cards"></div>
+  </div>
+
+  <div class="tab-content" id="statusTab">
+    <div id="statusLoading" class="loading"><div class="spinner"></div><p style="margin-top:8px">Loading...</p></div>
+    <div id="ksCards"></div>
+    <div id="summaryBox"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const CONFIG = { BACKEND_URL: 'https://script.google.com/macros/s/AKfycbykfR0YHo4us6CHFBp_L_ur1fYvmlX1PFAD1_mbMNaVqgxYJE6EizCHmyLtIqZg7viTTw/exec' };
+
+    const tg = window.Telegram?.WebApp;
+    let sessionToken = null;
+
+    // ── INIT ──
+    async function initApp() {
+      if (tg) {
+        tg.ready(); tg.expand();
+        if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+        // Apply theme
+        const tp = tg.themeParams;
+        const root = document.documentElement.style;
+        if (tp.bg_color) root.setProperty('--tg-theme-bg-color', tp.bg_color);
+        if (tp.text_color) root.setProperty('--tg-theme-text-color', tp.text_color);
+        if (tp.hint_color) root.setProperty('--tg-theme-hint-color', tp.hint_color);
+        if (tp.button_color) root.setProperty('--tg-theme-button-color', tp.button_color);
+        if (tp.secondary_bg_color) root.setProperty('--tg-theme-secondary-bg-color', tp.secondary_bg_color);
+      }
+
+      // Establish session (exchange initData for token)
+      try {
+        const resp = await fetch(CONFIG.BACKEND_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'ESTABLISH_SESSION', initData: tg?.initData || 'dev' }),
+        });
+        const data = await resp.json();
+        if (data.session_token) {
+          sessionToken = data.session_token;
+        } else {
+          showToast('Authentication failed', 'error');
+          return;
+        }
+      } catch (err) {
+        showToast('Connection error', 'error');
+        return;
+      }
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(btn =>
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+      loadPending();
+    }
+
+    // ── TABS ──
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+      document.getElementById(tab + 'Tab').classList.add('active');
+      if (tab === 'status') loadStatus();
+      if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    }
+
+    // ── API ──
+    async function api(action, data = {}) {
+      const resp = await fetch(CONFIG.BACKEND_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, sessionToken, data }),
+      });
+      if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.error || 'FAILED'); }
+      return resp.json();
+    }
+
+    // ── APPROVE TAB ──
+    async function loadPending() {
+      const loading = document.getElementById('approveLoading');
+      const empty = document.getElementById('approveEmpty');
+      const cards = document.getElementById('cards');
+      loading.style.display = 'block'; empty.style.display = 'none'; cards.innerHTML = '';
+
+      try {
+        const result = await api('GET_PENDING');
+        const trades = result.pending || [];
+        const badge = document.getElementById('badge');
+        badge.style.display = trades.length > 0 ? 'inline-block' : 'none';
+        badge.textContent = trades.length;
+        loading.style.display = 'none';
+        if (trades.length === 0) { empty.style.display = 'block'; return; }
+        trades.forEach(t => cards.appendChild(buildCard(t)));
+      } catch (err) {
+        loading.style.display = 'none';
+        cards.innerHTML = `<div class="empty-state"><div class="icon">!</div><div class="title">Error</div><div class="subtitle">${err.message}</div></div>`;
+      }
+    }
+
+    function buildCard(t) {
+      const card = document.createElement('div');
+      card.className = 'trade-card'; card.id = 'card-' + t.trade_id;
+      const isModify = t.action_type === 'MODIFY';
+      const isConditional = t.status === 'CONDITIONAL';
+      const dirClass = t.direction === 'BUY' ? 'dir-buy' : 'dir-sell';
+
+      let html = `<div class="card-header">
+        <span class="instrument">${t.instrument}</span>
+        <span class="silo-tag silo-${t.silo}">${t.silo.replace('_', ' ')}</span>
+      </div>`;
+
+      if (isModify) {
+        html += `<div class="modify-context">EXTEND HOLD: D20 → D30</div>`;
+      }
+
+      if (isConditional) {
+        let triggerDesc = t.trigger_type || 'conditions met';
+        try {
+          const schema = JSON.parse(t.trigger_schema || '{}');
+          triggerDesc = (schema.indicator||'') + ' ' + (schema.condition||'').replace(/_/g,' ') + ' ' + (schema.value||'');
+        } catch(e){}
+        const expiry = t.trigger_expiry
+          ? new Date(t.trigger_expiry).toLocaleDateString('en-GB',{day:'numeric',month:'short'})
+          : 'next IC';
+        html += `<div style="background:rgba(78,168,222,0.08);border:1px solid rgba(78,168,222,0.25);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+          <div style="font-size:11px;color:var(--tg-theme-hint-color);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Conditional trigger</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tg-theme-button-color);">${triggerDesc}</div>
+          <div style="font-size:12px;color:var(--tg-theme-hint-color);margin-top:4px;">Expires: ${expiry}</div>
+        </div>`;
+      }
+
+      html += `<div class="details">
+        <div><span class="detail-label">Direction</span><div class="detail-value ${dirClass}">${t.direction}</div></div>
+        <div><span class="detail-label">Size</span><div class="detail-value">${t.size}</div></div>
+        <div><span class="detail-label">${isModify ? 'Current price' : isConditional ? 'IC ref price' : 'Entry price'}</span><div class="detail-value">${t.entry_price || '—'}</div></div>
+        <div><span class="detail-label">Stop</span><div class="detail-value" style="color:var(--josh-red)">${t.stop_price || '—'}</div></div>
+      </div>`;
+
+      html += `<div class="accounts-banner">Executes on: Miles</div>`;
+      const btnLabel = isModify ? '✓ CONFIRM EXTENSION' : isConditional ? '✓ APPROVE CONDITIONAL' : '✓ CONFIRM ENTRY';
+      html += `<button class="confirm-btn ${isModify ? 'modify' : 'entry'}" id="btn-${t.trade_id}"
+        onclick="handleConfirm('${t.trade_id}')">${btnLabel}</button>`;
+
+      if (t.notes) html += `<div class="notes">${t.notes}</div>`;
+
+      card.innerHTML = html;
+      return card;
+    }
+
+    // ── CONFIRM FLOW ──
+    async function handleConfirm(tradeId) {
+      const btn = document.getElementById('btn-' + tradeId);
+      const orig = btn.textContent;
+      try {
+        btn.disabled = true; btn.textContent = 'Authenticating...';
+
+        const bioOk = await requestBiometric();
+        if (!bioOk) { showToast('Biometric required', 'error'); btn.disabled = false; btn.textContent = orig; return; }
+
+        btn.textContent = 'Signing...';
+        const intent = await api('GET_INTENT', { trade_id: tradeId });
+
+        btn.textContent = 'Executing...';
+        const result = await api('CONFIRM_TRADE', {
+          trade_id: tradeId, intent_hash: intent.intent_hash, nonce: intent.nonce });
+
+        if (result.success || result.status === 'APPROVED_QUEUED' || result.status === 'CONDITIONAL_ARMED') {
+          if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+          const msg = result.status === 'APPROVED_QUEUED' ? 'Queued for market open'
+            : result.status === 'CONDITIONAL_ARMED' ? 'Conditional armed — watching'
+            : result.action === 'MODIFIED' ? 'Hold extended'
+            : 'Executed';
+          showToast(msg, 'success');
+          const card = document.getElementById('card-' + tradeId);
+          card.style.transition = 'all 0.3s'; card.style.opacity = '0'; card.style.transform = 'translateX(100%)';
+          setTimeout(() => {
+            card.remove();
+            const remaining = document.querySelectorAll('.trade-card').length;
+            const badge = document.getElementById('badge');
+            badge.style.display = remaining > 0 ? 'inline-block' : 'none';
+            badge.textContent = remaining;
+            if (remaining === 0) document.getElementById('approveEmpty').style.display = 'block';
+          }, 300);
+        } else {
+          throw new Error(result.error || 'Execution failed');
+        }
+      } catch (err) {
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        showToast(err.message, 'error');
+        btn.disabled = false; btn.textContent = orig;
+      }
+    }
+
+    // ── BIOMETRIC ──
+    function requestBiometric() {
+      return new Promise(resolve => {
+        if (!tg?.BiometricManager) { resolve(true); return; }
+        tg.BiometricManager.init(() => {
+          if (!tg.BiometricManager.isBiometricAvailable) { resolve(true); return; }
+          tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, resolve);
+        });
+      });
+    }
+
+    // ── STATUS TAB ──
+    async function loadStatus() {
+      const loading = document.getElementById('statusLoading');
+      const cards = document.getElementById('ksCards');
+      const summary = document.getElementById('summaryBox');
+      loading.style.display = 'block'; cards.innerHTML = ''; summary.innerHTML = '';
+
+      try {
+        const r = await api('GET_KILL_SWITCH');
+        loading.style.display = 'none';
+
+        r.switches.forEach(sw => {
+          const card = document.createElement('div'); card.className = 'ks-card';
+          card.innerHTML = `<div class="ks-light ${sw.status}"></div><div style="flex:1">
+            <div class="ks-name">${sw.name}</div>
+            <div class="ks-value">${sw.current !== null ? (typeof sw.current === 'number' ? sw.current.toFixed(1) : sw.current) : 'N/A'}${sw.unit} / threshold: ${sw.threshold}${sw.unit}</div>
+          </div>`;
+          cards.appendChild(card);
+        });
+
+        const s = r.summary;
+        summary.innerHTML = `<div class="summary-box">
+          <div><span class="detail-label">Trades</span><div class="detail-value">${s.total_trades}</div></div>
+          <div><span class="detail-label">Win rate</span><div class="detail-value">${s.win_rate.toFixed(1)}%</div></div>
+          <div><span class="detail-label">P&L</span><div class="detail-value" style="color:${s.total_pnl >= 0 ? 'var(--josh-green)' : 'var(--josh-red)'}">£${s.total_pnl.toFixed(2)}</div></div>
+          <div><span class="detail-label">Drawdown</span><div class="detail-value" style="color:${s.drawdown_pct < -20 ? 'var(--josh-red)' : s.drawdown_pct < -10 ? 'var(--josh-amber)' : 'var(--josh-green)'}">${s.drawdown_pct.toFixed(1)}%</div></div>
+        </div>`;
+      } catch (err) {
+        loading.style.display = 'none';
+        cards.innerHTML = `<div class="empty-state"><div class="icon">!</div><div class="title">Error</div><div class="subtitle">${err.message}</div></div>`;
+      }
+    }
+
+    // ── TOAST ──
+    function showToast(msg, type) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast ' + type;
+      t.offsetHeight; t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 3500);
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
