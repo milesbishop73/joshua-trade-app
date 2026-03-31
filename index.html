@@ -175,7 +175,7 @@
       // Establish session (exchange initData for token)
       try {
         const resp = await fetch(CONFIG.BACKEND_URL, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'ESTABLISH_SESSION', initData: tg?.initData || 'dev' }),
         });
         const data = await resp.json();
@@ -210,7 +210,7 @@
     // ── API ──
     async function api(action, data = {}) {
       const resp = await fetch(CONFIG.BACKEND_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action, sessionToken, data }),
       });
       if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.error || 'FAILED'); }
