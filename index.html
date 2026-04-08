@@ -176,7 +176,7 @@
       try {
         const resp = await fetch(CONFIG.BACKEND_URL, {
           method: 'POST', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'ESTABLISH_SESSION', initData: tg?.initData || 'dev' }),
+          body: JSON.stringify({ action: 'ESTABLISH_SESSION', initData: tg?.initData || 'dev', source: 'trade' }),
         });
         const data = await resp.json();
         if (data.session_token) {
