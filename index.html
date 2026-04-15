@@ -291,6 +291,7 @@
 
     // ── CONFIRM FLOW ──
     async function handleConfirm(tradeId) {
+      alert('WebApp version: ' + (tg?.version || 'unknown') + '\nBioMgr: ' + !!tg?.BiometricManager);
       const btn = document.getElementById('btn-' + tradeId);
       const orig = btn.textContent;
       try {
