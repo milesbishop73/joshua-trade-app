@@ -337,7 +337,7 @@
    function requestBiometric() {
       return new Promise(resolve => {
         if (!tg?.BiometricManager) { resolve(true); return; }
-        const timeout = setTimeout(() => { resolve(true); }, 5000);
+        const timeout = setTimeout(() => { resolve(false); }, 5000);
         try {
           tg.BiometricManager.init(() => {
             clearTimeout(timeout);
