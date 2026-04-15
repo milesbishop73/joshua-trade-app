@@ -340,17 +340,20 @@
     }
 
     // ── BIOMETRIC ──
-  function requestBiometric() {
+ function requestBiometric() {
       return new Promise(resolve => {
-        if (!tg?.BiometricManager) { resolve(false); return; }
-        const timeout = setTimeout(() => { resolve(false); }, 5000);
+        if (!tg?.BiometricManager) { alert('No BioMgr'); resolve(false); return; }
+        const timeout = setTimeout(() => { alert('Timeout'); resolve(false); }, 5000);
         try {
-          if (!tg.BiometricManager.isBiometricAvailable) { clearTimeout(timeout); resolve(false); return; }
+          const avail = tg.BiometricManager.isBiometricAvailable;
+          const inited = tg.BiometricManager.isInited;
+          if (!avail) { clearTimeout(timeout); alert('Not available. inited=' + inited); resolve(false); return; }
           tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, (success) => {
             clearTimeout(timeout);
+            alert('Auth result: ' + success);
             resolve(success);
           });
-        } catch (e) { clearTimeout(timeout); resolve(false); }
+        } catch (e) { clearTimeout(timeout); alert('Error: ' + e.message); resolve(false); }
       });
     }
     
