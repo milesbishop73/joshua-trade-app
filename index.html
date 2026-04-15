@@ -195,6 +195,12 @@
         btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
       loadPending();
+
+      // Pre-init BiometricManager so it's ready when needed
+      if (tg?.BiometricManager) {
+        tg.BiometricManager.init(() => {});
+      }
+     
     }
 
     // ── TABS ──
@@ -291,7 +297,6 @@
 
     // ── CONFIRM FLOW ──
     async function handleConfirm(tradeId) {
-      alert('WebApp version: ' + (tg?.version || 'unknown') + '\nBioMgr: ' + !!tg?.BiometricManager);
       const btn = document.getElementById('btn-' + tradeId);
       const orig = btn.textContent;
       try {
@@ -335,20 +340,20 @@
     }
 
     // ── BIOMETRIC ──
-   function requestBiometric() {
+  function requestBiometric() {
       return new Promise(resolve => {
-        if (!tg?.BiometricManager) { resolve(true); return; }
+        if (!tg?.BiometricManager) { resolve(false); return; }
         const timeout = setTimeout(() => { resolve(false); }, 5000);
         try {
-          tg.BiometricManager.init(() => {
+          if (!tg.BiometricManager.isBiometricAvailable) { clearTimeout(timeout); resolve(false); return; }
+          tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, (success) => {
             clearTimeout(timeout);
-            if (!tg.BiometricManager.isBiometricAvailable) { resolve(true); return; }
-            tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, resolve);
+            resolve(success);
           });
-        } catch (e) { clearTimeout(timeout); resolve(true); }
+        } catch (e) { clearTimeout(timeout); resolve(false); }
       });
     }
-
+    
     // ── STATUS TAB ──
     async function loadStatus() {
       const loading = document.getElementById('statusLoading');
