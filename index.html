@@ -334,13 +334,17 @@
     }
 
     // ── BIOMETRIC ──
-    function requestBiometric() {
+   function requestBiometric() {
       return new Promise(resolve => {
         if (!tg?.BiometricManager) { resolve(true); return; }
-        tg.BiometricManager.init(() => {
-          if (!tg.BiometricManager.isBiometricAvailable) { resolve(true); return; }
-          tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, resolve);
-        });
+        const timeout = setTimeout(() => { resolve(true); }, 5000);
+        try {
+          tg.BiometricManager.init(() => {
+            clearTimeout(timeout);
+            if (!tg.BiometricManager.isBiometricAvailable) { resolve(true); return; }
+            tg.BiometricManager.authenticate({ reason: 'Confirm trade' }, resolve);
+          });
+        } catch (e) { clearTimeout(timeout); resolve(true); }
       });
     }
 
